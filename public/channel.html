@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Channel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header class="topbar">
+    <div class="topbar__left">
+        <a href="/" class="topbar__brand">
+            <img class="topbar__logo" src="/logo.png" alt="OopToop logo">
+            <div class="topbar__title">OopToop</div>
+        </a>
+    </div>
+
+    <div class="topbar__center">
+        <input class="topbar__search" type="text" placeholder="Search">
+    </div>
+
+    <div class="topbar__right">
+        <button class="topbar__upload">Upload</button>
+    </div>
+</header>
+
+<nav class="topnav">
+    <a class="topnav__link" href="/">Home</a>
+    <a class="topnav__link topnav__link--active" href="/channel.html">Channels</a>
+</nav>
+
+<main class="channel-page">
+    <section class="channel-hero" id="channel"></section>
+    <section class="channel-videos">
+        <h2 class="channel-videos__title">Videos</h2>
+        <div class="grid" id="videos"></div>
+    </section>
+</main>
+
+<script src="channel.js"></script>
+
+</body>
+</html>

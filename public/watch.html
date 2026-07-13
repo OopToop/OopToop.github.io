@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Watch - OopToop</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+    <div class="topbar__left">
+        <a class="topbar__brand" href="/">
+            <img class="topbar__logo" src="/logo.png" alt="OopToop logo">
+            <div class="topbar__title">OopToop</div>
+        </a>
+    </div>
+
+    <div class="topbar__center">
+        <input class="topbar__search" type="text" placeholder="Search">
+    </div>
+
+    <div class="topbar__right">
+        <a class="topbar__upload" href="/upload.html">Upload</a>
+    </div>
+</header>
+
+<main class="watch-page">
+    <video id="player" controls autoplay></video>
+
+    <h1 id="title"></h1>
+
+    <div id="channel"></div>
+    <div id="stats"></div>
+
+    <div class="watch-actions">
+        <button id="likeButton">👍 Like</button>
+        <button id="subscribeButton">Subscribe</button>
+    </div>
+
+    <div id="description"></div>
+
+    <h2>Comments</h2>
+    <div id="comments"></div>
+
+    <textarea id="commentBox" placeholder="Write a comment..."></textarea>
+    <button id="postComment">Post</button>
+</main>
+
+<script src="watch.js"></script>
+</body>
+</html>

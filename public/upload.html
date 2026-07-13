@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload - OopToop</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+    <div class="topbar__left">
+        <a class="topbar__brand" href="/">
+            <img class="topbar__logo" src="/logo.png" alt="OopToop logo">
+            <div class="topbar__title">OopToop</div>
+        </a>
+    </div>
+
+    <div class="topbar__center">
+        <input class="topbar__search" type="text" placeholder="Search">
+    </div>
+
+    <div class="topbar__right">
+        <a class="topbar__upload" href="/upload.html">Upload</a>
+    </div>
+</header>
+
+<nav class="topnav">
+    <a class="topnav__link" href="/">Home</a>
+    <a class="topnav__link" href="/channel.html">Channels</a>
+</nav>
+
+<main class="page-content">
+    <section class="upload-panel upload-panel--page">
+        <h2>Upload a video</h2>
+        <p class="upload-panel__hint">Choose a video file and thumbnail, then enter a channel name. If it does not exist yet, it will be created automatically.</p>
+        <form id="uploadForm" class="upload-form">
+            <label class="upload-field">
+                <span>Video title</span>
+                <input type="text" name="title" placeholder="Video title" required>
+            </label>
+
+            <label class="upload-field">
+                <span>Channel</span>
+                <input type="text" name="channel" id="channelInput" placeholder="Channel name" required>
+            </label>
+
+            <label class="upload-field">
+                <span>Upload date</span>
+                <input type="date" name="uploadDate" required>
+            </label>
+
+            <label class="upload-field upload-field--file">
+                <span>Video file</span>
+                <input type="file" name="video" accept="video/*" required>
+            </label>
+
+            <label class="upload-field upload-field--file">
+                <span>Thumbnail</span>
+                <input type="file" name="thumbnail" accept="image/*" required>
+            </label>
+
+            <button type="submit">Upload</button>
+        </form>
+    </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
