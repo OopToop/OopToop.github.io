@@ -1,4 +1,4 @@
 #!/bin/bash
 
-cd "/Users/Harry/OopToop"
+cd "/Users/YOURUSERNAME/OopToop"
 node server.js
