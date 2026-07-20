@@ -17,6 +17,34 @@ function formatCompactNumber(value) {
     return num.toString();
 }
 
+function parseVideoDate(dateString) {
+    if (!dateString) {
+        return 0;
+    }
+
+    const normalized = String(dateString).trim();
+    const parts = normalized.split(/[-/]/).map(value => Number(value));
+
+    if (parts.length === 3 && parts.every(Number.isFinite)) {
+        const [first, second, third] = parts;
+
+        if (first > 12 && second <= 12 && third <= 31) {
+            return new Date(first, second - 1, third).getTime();
+        }
+
+        if (second > 12 && first <= 12 && third <= 31) {
+            return new Date(third, first - 1, second).getTime();
+        }
+
+        if (third > 12 && first <= 12 && second <= 31) {
+            return new Date(third, first - 1, second).getTime();
+        }
+    }
+
+    const parsed = Date.parse(normalized);
+    return Number.isNaN(parsed) ? 0 : parsed;
+}
+
 async function uploadChannelImage(file, kind, channelName) {
     const formData = new FormData();
     formData.append("image", file);
@@ -114,10 +142,12 @@ if (!name) {
     fetch("/api/videos")
         .then(res => res.json())
         .then(videos => {
-            const filtered = videos.filter(video =>
-                video.channel &&
-                video.channel.toLowerCase() === name.toLowerCase()
-            );
+            const filtered = videos
+                .filter(video =>
+                    video.channel &&
+                    video.channel.toLowerCase() === name.toLowerCase()
+                )
+                .sort((a, b) => parseVideoDate(b.date) - parseVideoDate(a.date));
 
             if (filtered.length === 0) {
                 videoContainer.innerHTML = '<p class="empty-state">No videos yet for this channel.</p>';

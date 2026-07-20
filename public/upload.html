@@ -34,6 +34,14 @@
         <p class="upload-panel__hint">Choose a video file and thumbnail, then enter a channel name. If it does not exist yet, it will be created automatically.</p>
         <form id="uploadForm" class="upload-form">
             <label class="upload-field">
+                <span>Action</span>
+                <select name="mode" id="uploadMode">
+                    <option value="new">Upload New Video</option>
+                    <option value="reroll">Reroll Stats of Old Video</option>
+                </select>
+            </label>
+
+            <label class="upload-field">
                 <span>Video title</span>
                 <input type="text" name="title" placeholder="Video title" required>
             </label>
@@ -48,14 +56,35 @@
                 <input type="date" name="uploadDate" required>
             </label>
 
+            <div id="oldVideoSection" class="upload-popularity" hidden>
+                <label class="upload-field">
+                    <span>Old video</span>
+                    <select name="videoId" id="rerollVideoSelect"></select>
+                </label>
+            </div>
+
+            <div id="popularitySection" class="upload-popularity" hidden>
+                <label class="upload-field">
+                    <span>Popularity</span>
+                    <select name="popularity" id="popularitySelect">
+                        <option value="random" selected>Random</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="viral">Viral</option>
+                        <option value="super-viral">Super Viral</option>
+                    </select>
+                </label>
+            </div>
+
             <label class="upload-field upload-field--file">
                 <span>Video file</span>
-                <input type="file" name="video" accept="video/*" required>
+                <input id="videoInput" type="file" name="video" accept="video/*" required>
             </label>
 
             <label class="upload-field upload-field--file">
                 <span>Thumbnail</span>
-                <input type="file" name="thumbnail" accept="image/*" required>
+                <input id="thumbnailInput" type="file" name="thumbnail" accept="image/*" required>
             </label>
 
             <button type="submit">Upload</button>

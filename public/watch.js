@@ -32,6 +32,8 @@ const descriptionEl = document.getElementById("description");
 const commentsEl = document.getElementById("comments");
 const commentBox = document.getElementById("commentBox");
 const likeButton = document.getElementById("likeButton");
+const mehButton = document.getElementById("mehButton");
+const thumbsDownButton = document.getElementById("thumbsDownButton");
 const subscribeButton = document.getElementById("subscribeButton");
 
 async function loadVideo() {
@@ -60,6 +62,8 @@ async function loadVideo() {
     statsEl.innerHTML = `
         <span>${formatCompactNumber(video.views || 0)} views</span>
         <span>${formatCompactNumber(video.likes || 0)} likes</span>
+        <span>${formatCompactNumber(video.mehs || 0)} mehs</span>
+        <span>${formatCompactNumber(video.thumbsDowns || 0)} thumbs downs</span>
     `;
 
     commentsEl.innerHTML = (video.comments || []).map(comment => `
@@ -72,6 +76,16 @@ async function loadVideo() {
 
 likeButton?.addEventListener("click", async () => {
     await fetch(`/api/video/${encodeURIComponent(videoId)}/like`, { method: "POST" });
+    await loadVideo();
+});
+
+mehButton?.addEventListener("click", async () => {
+    await fetch(`/api/video/${encodeURIComponent(videoId)}/meh`, { method: "POST" });
+    await loadVideo();
+});
+
+thumbsDownButton?.addEventListener("click", async () => {
+    await fetch(`/api/video/${encodeURIComponent(videoId)}/thumbs-down`, { method: "POST" });
     await loadVideo();
 });
 

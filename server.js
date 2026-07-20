@@ -39,6 +39,8 @@ function createMetadata(file) {
 
         let views;
         let likes;
+        let mehs;
+        let thumbsDowns;
 
         if (tier === 1) {
             views = Math.floor(Math.random() * 901) + 100;
@@ -62,6 +64,8 @@ function createMetadata(file) {
 
         const ratio = [5, 4, 3, 2][Math.floor(Math.random() * 4)];
         likes = Math.floor(views / ratio);
+        mehs = Math.floor(views / (ratio + 2));
+        thumbsDowns = Math.floor(views / (ratio + 4));
 
         const now = new Date();
         const date = [
@@ -75,6 +79,8 @@ function createMetadata(file) {
             name: baseName.replace(/_/g, " "),
             views: views,
             likes: likes,
+            mehs: mehs,
+            thumbsDowns: thumbsDowns,
             channel: "Unknown",
             description: "",
             comments: [],
@@ -88,12 +94,21 @@ function createMetadata(file) {
     }
 
     const metadata = JSON.parse(fs.readFileSync(metadataPath));
+    const views = Number(metadata.views) || 0;
+    const likes = Number(metadata.likes) || 0;
+    const mehs = Number(metadata.mehs) || 0;
+    const thumbsDowns = Number(metadata.thumbsDowns) || 0;
+    const shouldBackfillReactions = likes >= 1000000 || views >= 10000000;
+
     const normalized = {
         ...metadata,
         id: metadata.id || baseName,
         name: metadata.name || baseName.replace(/_/g, " "),
-        views: Number(metadata.views) || 0,
-        likes: Number(metadata.likes) || 0,
+        views: views,
+        likes: likes,
+        mehs: shouldBackfillReactions && mehs < 10 ? 10 : mehs,
+        thumbsDowns: shouldBackfillReactions && thumbsDowns < 10 ? 10 : thumbsDowns,
+        subscribersGained: Number(metadata.subscribersGained) || 0,
         channel: metadata.channel || "Unknown",
         description: metadata.description || "",
         comments: metadata.comments || [],
@@ -103,6 +118,95 @@ function createMetadata(file) {
     fs.writeFileSync(metadataPath, JSON.stringify(normalized, null, 4));
 
     return normalized;
+}
+
+function parseVideoDate(dateString) {
+    if (!dateString) {
+        return 0;
+    }
+
+    const normalized = String(dateString).trim();
+    const parts = normalized.split(/[-/]/).map(value => Number(value));
+
+    if (parts.length === 3 && parts.every(Number.isFinite)) {
+        const [first, second, third] = parts;
+
+        if (first > 12 && second <= 12 && third <= 31) {
+            return new Date(first, second - 1, third).getTime();
+        }
+
+        if (second > 12 && first <= 12 && third <= 31) {
+            return new Date(third, first - 1, second).getTime();
+        }
+
+        if (third > 12 && first <= 12 && second <= 31) {
+            return new Date(third, first - 1, second).getTime();
+        }
+    }
+
+    const parsed = Date.parse(normalized);
+    return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function generateVideoStats(popularity) {
+    const popularityRanges = {
+        low: [100, 999],
+        medium: [1000, 9999],
+        high: [10000, 99999],
+        viral: [100000, 9999999],
+        "super-viral": [10000000, 1000000000]
+    };
+
+    const tierRoll = Math.random();
+    let tier;
+
+    if (tierRoll < 0.3) {
+        tier = Math.random() < 0.5 ? 1 : 2;
+    } else if (tierRoll < 0.8) {
+        tier = Math.floor(Math.random() * 4) + 3;
+    } else if (tierRoll < 0.95) {
+        tier = 7;
+    } else {
+        tier = Math.random() < 0.5 ? 8 : 9;
+    }
+
+    let views;
+    if (popularityRanges[popularity]) {
+        const [minViews, maxViews] = popularityRanges[popularity];
+        views = Math.floor(Math.random() * (maxViews - minViews + 1)) + minViews;
+    } else if (tier === 1) {
+        views = Math.floor(Math.random() * 901) + 100;
+    } else if (tier === 2) {
+        views = Math.floor(Math.random() * 9001) + 1000;
+    } else if (tier === 3) {
+        views = Math.floor(Math.random() * 15001) + 10000;
+    } else if (tier === 4) {
+        views = Math.floor(Math.random() * 75001) + 26000;
+    } else if (tier === 5) {
+        views = Math.floor(Math.random() * 900000) + 100000;
+    } else if (tier === 6) {
+        views = Math.floor(Math.random() * 9000001) + 1000000;
+    } else if (tier === 7) {
+        views = Math.floor(Math.random() * 90000001) + 10000000;
+    } else if (tier === 8) {
+        views = Math.floor(Math.random() * 900000001) + 100000000;
+    } else {
+        views = Math.floor(Math.random() * 4000000001) + 1000000000;
+    }
+
+    const ratio = [5, 4, 3, 2][Math.floor(Math.random() * 4)];
+    const likes = Math.floor(views / ratio);
+    const mehs = Math.floor(views / (ratio + 2));
+    const thumbsDowns = Math.floor(views / (ratio + 4));
+    const subscribersGained = Math.floor(likes / ratio);
+
+    return {
+        views,
+        likes,
+        mehs,
+        thumbsDowns,
+        subscribersGained
+    };
 }
 
 function resolveChannelProfilePicture(channelName) {
@@ -158,6 +262,7 @@ app.get("/api/videos", (req, res) => {
             .map(file => {
                 const baseName = path.parse(file).name;
                 const metadata = createMetadata(file);
+                const fileStats = fs.statSync(path.join(videoFolder, file));
 
                 return {
                     id: metadata.id || baseName,
@@ -167,9 +272,11 @@ app.get("/api/videos", (req, res) => {
                     likes: Number(metadata.likes) || 0,
                     date: metadata.date || "",
                     videoPath: "/library/videos/" + file,
-                    thumbnailPath: "/library/thumbnails/" + baseName + ".jpg"
+                    thumbnailPath: "/library/thumbnails/" + baseName + ".jpg",
+                    _sortDate: parseVideoDate(metadata.date) || fileStats.mtimeMs
                 };
-            });
+            })
+            .sort((a, b) => (b._sortDate || 0) - (a._sortDate || 0));
 
         res.json(videos);
     });
@@ -266,6 +373,44 @@ app.post("/api/video/:id/like", (req, res) => {
     );
 
     metadata.likes = (metadata.likes || 0) + 1;
+    fs.writeFileSync(metadataFile, JSON.stringify(metadata, null, 4));
+
+    res.json({ success: true });
+});
+
+app.post("/api/video/:id/meh", (req, res) => {
+    const metadata = findMetadataById(req.params.id);
+
+    if (!metadata) {
+        return res.status(404).json({ error: "Video not found" });
+    }
+
+    const metadataFile = path.join(
+        __dirname,
+        "library/metadata",
+        (metadata.id || req.params.id) + ".json"
+    );
+
+    metadata.mehs = (metadata.mehs || 0) + 1;
+    fs.writeFileSync(metadataFile, JSON.stringify(metadata, null, 4));
+
+    res.json({ success: true });
+});
+
+app.post("/api/video/:id/thumbs-down", (req, res) => {
+    const metadata = findMetadataById(req.params.id);
+
+    if (!metadata) {
+        return res.status(404).json({ error: "Video not found" });
+    }
+
+    const metadataFile = path.join(
+        __dirname,
+        "library/metadata",
+        (metadata.id || req.params.id) + ".json"
+    );
+
+    metadata.thumbsDowns = (metadata.thumbsDowns || 0) + 1;
     fs.writeFileSync(metadataFile, JSON.stringify(metadata, null, 4));
 
     res.json({ success: true });
@@ -371,6 +516,7 @@ app.post(
         const title = req.body.title;
         const channel = req.body.channel;
         const uploadDate = req.body.uploadDate;
+        const popularity = String(req.body.popularity || "").trim().toLowerCase();
 
         const channelFolder = path.join(__dirname, "library/channels", channel);
         if (!fs.existsSync(channelFolder)) {
@@ -412,66 +558,10 @@ app.post(
         fs.renameSync(videoFile.path, videoPath);
         fs.renameSync(thumbnailFile.path, thumbnailPath);
 
-        const tierRoll = Math.random();
-        let tier;
-
-        if (tierRoll < 0.3) {
-            tier = Math.random() < 0.5 ? 1 : 2;
-        } else if (tierRoll < 0.8) {
-            tier = Math.floor(Math.random() * 4) + 3;
-        } else if (tierRoll < 0.95) {
-            tier = 7;
-        } else {
-            tier = Math.random() < 0.5 ? 8 : 9;
-        }
-
-        let views;
-        if (tier === 1) {
-            views = Math.floor(Math.random() * 901) + 100;
-        } else if (tier === 2) {
-            views = Math.floor(Math.random() * 9001) + 1000;
-        } else if (tier === 3) {
-            views = Math.floor(Math.random() * 15001) + 10000;
-        } else if (tier === 4) {
-            views = Math.floor(Math.random() * 75001) + 26000;
-        } else if (tier === 5) {
-            views = Math.floor(Math.random() * 900000) + 100000;
-        } else if (tier === 6) {
-            views = Math.floor(Math.random() * 9000001) + 1000000;
-        } else if (tier === 7) {
-            views = Math.floor(Math.random() * 90000001) + 10000000;
-        } else if (tier === 8) {
-            views = Math.floor(Math.random() * 900000001) + 100000000;
-        } else {
-            views = Math.floor(Math.random() * 4000000001) + 1000000000;
-        }
-
-        const ratio = [5, 4, 3, 2][Math.floor(Math.random() * 4)];
-        const likes = Math.floor(views / ratio);
-
-        let subscriberGain;
-        if (tier === 1) {
-            subscriberGain = Math.floor(Math.random() * 10) + 1;
-        } else if (tier === 2) {
-            subscriberGain = Math.floor(Math.random() * 91) + 10;
-        } else if (tier === 3) {
-            subscriberGain = Math.floor(Math.random() * 201) + 50;
-        } else if (tier === 4) {
-            subscriberGain = Math.floor(Math.random() * 501) + 200;
-        } else if (tier === 5) {
-            subscriberGain = Math.floor(Math.random() * 2001) + 1000;
-        } else if (tier === 6) {
-            subscriberGain = Math.floor(Math.random() * 9001) + 5000;
-        } else if (tier === 7) {
-            subscriberGain = Math.floor(Math.random() * 50001) + 20000;
-        } else if (tier === 8) {
-            subscriberGain = Math.floor(Math.random() * 100001) + 50000;
-        } else {
-            subscriberGain = Math.floor(Math.random() * 250001) + 100000;
-        }
+        const { views, likes, mehs, thumbsDowns, subscribersGained } = generateVideoStats(popularity);
 
         const channelData = JSON.parse(fs.readFileSync(channelFile));
-        channelData.subscribers = (channelData.subscribers || 0) + subscriberGain;
+        channelData.subscribers = (channelData.subscribers || 0) + subscribersGained;
         fs.writeFileSync(channelFile, JSON.stringify(channelData, null, 4));
 
         const metadata = {
@@ -479,8 +569,12 @@ app.post(
             name: title,
             channel: channel,
             uploadDate: uploadDate,
+            popularity: popularity || "random",
             views: views,
             likes: likes,
+            mehs: mehs,
+            thumbsDowns: thumbsDowns,
+            subscribersGained: subscribersGained,
             description: "",
             comments: [],
             date: uploadDate
@@ -498,6 +592,47 @@ app.post(
         res.json({ success: true });
     }
 );
+
+app.post("/api/reroll-video-stats", (req, res) => {
+    const videoId = String(req.body.videoId || "").trim();
+    const popularity = String(req.body.popularity || "").trim().toLowerCase();
+
+    const metadata = findMetadataById(videoId);
+
+    if (!metadata) {
+        return res.status(404).json({ error: "Video not found" });
+    }
+
+    const metadataFile = path.join(
+        __dirname,
+        "library/metadata",
+        (metadata.id || videoId) + ".json"
+    );
+
+    const channelName = metadata.channel;
+    const channelFile = path.join(__dirname, "library/channels", channelName, "channel.json");
+
+    if (!fs.existsSync(channelFile)) {
+        return res.status(404).json({ error: "Channel not found" });
+    }
+
+    const { views, likes, mehs, thumbsDowns, subscribersGained } = generateVideoStats(popularity);
+    const previousSubscriberGain = Number(metadata.subscribersGained) || 0;
+
+    const channelData = JSON.parse(fs.readFileSync(channelFile));
+    channelData.subscribers = (channelData.subscribers || 0) + subscribersGained - previousSubscriberGain;
+    fs.writeFileSync(channelFile, JSON.stringify(channelData, null, 4));
+
+    metadata.popularity = popularity || "random";
+    metadata.views = views;
+    metadata.likes = likes;
+    metadata.mehs = mehs;
+    metadata.thumbsDowns = thumbsDowns;
+    metadata.subscribersGained = subscribersGained;
+    fs.writeFileSync(metadataFile, JSON.stringify(metadata, null, 4));
+
+    res.json({ success: true });
+});
 
 const allowedExtensions = [".mp4", ".webm", ".mov"];
 
