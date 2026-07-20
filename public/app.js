@@ -47,6 +47,7 @@ function parseVideoDate(dateString) {
 
 const searchInput = document.querySelector(".topbar__search");
 const popularitySection = document.getElementById("popularitySection");
+const rerollSelectionSection = document.getElementById("rerollSelectionSection");
 const uploadForm = document.getElementById("uploadForm");
 const uploadMode = document.getElementById("uploadMode");
 const oldVideoSection = document.getElementById("oldVideoSection");
@@ -68,6 +69,9 @@ function updatePopularitySection() {
     );
 
     popularitySection.hidden = !shouldShow;
+    if (rerollSelectionSection) {
+        rerollSelectionSection.hidden = !shouldShow || uploadMode.value !== "reroll";
+    }
 }
 
 function updateUploadModeUI() {
@@ -96,6 +100,10 @@ function updateUploadModeUI() {
         thumbnailInput.disabled = reroll;
         thumbnailInput.required = !reroll;
     }
+
+    document.querySelectorAll("[data-reroll-stat]").forEach(check => {
+        check.disabled = !reroll;
+    });
 
     updatePopularitySection();
 }
@@ -138,6 +146,11 @@ uploadForm?.addEventListener("submit", async event => {
     if (mode === "reroll") {
         const videoId = formData.get("videoId")?.toString().trim();
         const popularity = formData.get("popularity")?.toString().trim();
+        const rerollSelections = {};
+
+        document.querySelectorAll("[data-reroll-stat]").forEach(check => {
+            rerollSelections[check.dataset.rerollStat] = check.checked;
+        });
 
         if (!videoId) {
             alert("Please choose an old video to reroll.");
@@ -151,7 +164,8 @@ uploadForm?.addEventListener("submit", async event => {
             },
             body: JSON.stringify({
                 videoId,
-                popularity
+                popularity,
+                reroll: rerollSelections
             })
         });
 

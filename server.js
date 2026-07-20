@@ -198,7 +198,7 @@ function generateVideoStats(popularity) {
     const likes = Math.floor(views / ratio);
     const mehs = Math.floor(views / (ratio + 2));
     const thumbsDowns = Math.floor(views / (ratio + 4));
-    const subscribersGained = Math.floor(likes / ratio);
+    const subscribersGained = Math.floor(views / (ratio + 8));
 
     return {
         views,
@@ -596,6 +596,12 @@ app.post(
 app.post("/api/reroll-video-stats", (req, res) => {
     const videoId = String(req.body.videoId || "").trim();
     const popularity = String(req.body.popularity || "").trim().toLowerCase();
+    const reroll = req.body.reroll || {};
+    const rerollViews = reroll.views !== false;
+    const rerollLikes = reroll.likes !== false;
+    const rerollMehs = reroll.mehs !== false;
+    const rerollThumbsDowns = reroll.thumbsDowns !== false;
+    const rerollSubscribers = reroll.subscribers !== false;
 
     const metadata = findMetadataById(videoId);
 
@@ -620,15 +626,17 @@ app.post("/api/reroll-video-stats", (req, res) => {
     const previousSubscriberGain = Number(metadata.subscribersGained) || 0;
 
     const channelData = JSON.parse(fs.readFileSync(channelFile));
-    channelData.subscribers = (channelData.subscribers || 0) + subscribersGained - previousSubscriberGain;
+    if (rerollSubscribers) {
+        channelData.subscribers = (channelData.subscribers || 0) + subscribersGained - previousSubscriberGain;
+    }
     fs.writeFileSync(channelFile, JSON.stringify(channelData, null, 4));
 
     metadata.popularity = popularity || "random";
-    metadata.views = views;
-    metadata.likes = likes;
-    metadata.mehs = mehs;
-    metadata.thumbsDowns = thumbsDowns;
-    metadata.subscribersGained = subscribersGained;
+    metadata.views = rerollViews ? views : Number(metadata.views) || 0;
+    metadata.likes = rerollLikes ? likes : Number(metadata.likes) || 0;
+    metadata.mehs = rerollMehs ? mehs : Number(metadata.mehs) || 0;
+    metadata.thumbsDowns = rerollThumbsDowns ? thumbsDowns : Number(metadata.thumbsDowns) || 0;
+    metadata.subscribersGained = rerollSubscribers ? subscribersGained : previousSubscriberGain;
     fs.writeFileSync(metadataFile, JSON.stringify(metadata, null, 4));
 
     res.json({ success: true });
